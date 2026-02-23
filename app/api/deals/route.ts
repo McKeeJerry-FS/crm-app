@@ -1,19 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-let deals = [
-    { id: '1', title: 'Big Deal', description: 'A large contract', value: 50000, amount: 50000, status: 'In Progress' },
-];
+import { prisma } from '@/lib/prisma';
 
 export async function GET() {
+    const deals = await prisma.deal.findMany({
+        orderBy: { createdAt: 'desc' }
+    });
     return NextResponse.json(deals);
 }
 
 export async function POST(request: NextRequest) {
     const body = await request.json();
-    const newDeal = {
-        id: Date.now().toString(),
-        ...body
-    };
-    deals.push(newDeal);
-    return NextResponse.json(newDeal, { status: 201 });
+    const deal = await prisma.deal.create({
+        data: body
+    });
+    return NextResponse.json(deal, { status: 201 });
 }

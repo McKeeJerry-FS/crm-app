@@ -1,19 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-let customers = [
-    { id: '1', name: 'John Doe', email: 'john@example.com', phone: '123-456-7890', address: '123 Main St' },
-];
+import { prisma } from '@/lib/prisma';
 
 export async function GET() {
+    const customers = await prisma.customer.findMany({
+        orderBy: { createdAt: 'desc' }
+    });
     return NextResponse.json(customers);
 }
 
 export async function POST(request: NextRequest) {
     const body = await request.json();
-    const newCustomer = {
-        id: Date.now().toString(),
-        ...body
-    };
-    customers.push(newCustomer);
-    return NextResponse.json(newCustomer, { status: 201 });
+    const customer = await prisma.customer.create({
+        data: body
+    });
+    return NextResponse.json(customer, { status: 201 });
 }
