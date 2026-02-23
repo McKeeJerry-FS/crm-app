@@ -14,10 +14,16 @@ const Navbar = () => {
         <nav className="navbar">
             <div className="navbar-container">
                 <Link href="/" className="navbar-brand">
-                    🏢 CRM App
+                    🏢 CRM Pro
                 </Link>
                 
                 <div className="navbar-links">
+                    <Link 
+                        href="/dashboard" 
+                        className={`navbar-link ${isActive('/dashboard') ? 'active' : ''}`}
+                    >
+                        📊 Dashboard
+                    </Link>
                     <Link 
                         href="/customers" 
                         className={`navbar-link ${isActive('/customers') ? 'active' : ''}`}
