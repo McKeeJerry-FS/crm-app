@@ -24,6 +24,9 @@ COPY --from=deps /app/node_modules ./node_modules
 # Copy all source files
 COPY . .
 
+# Create public directory if it doesn't exist in the source
+RUN mkdir -p ./public
+
 # Generate Prisma Client
 RUN npx prisma generate
 
@@ -35,31 +38,30 @@ RUN npm run build
 FROM base AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Create public directory if it doesn't exist
-RUN mkdir -p ./public
+# Copy built application
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy built application (use wildcards to avoid errors if directories don't exist)
-COPY --from=builder /app/public* ./public/ 2>/dev/null || true
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone .
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static/
+# Copy public folder
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
 # Copy Prisma files
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 
 USER nextjs
 
 EXPOSE 3000
 
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
 # Run migrations and start the app
-CMD sh -c "npx prisma migrate deploy && node server.js"
+CMD ["sh", "-c", "npx prisma migrate deploy && node server.js"]
