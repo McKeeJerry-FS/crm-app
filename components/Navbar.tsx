@@ -2,13 +2,23 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useSession, signOut } from 'next-auth/react';
 
 const Navbar = () => {
     const pathname = usePathname();
+    const { data: session } = useSession();
     
     const isActive = (path: string) => {
         return pathname === path || pathname.startsWith(path + '/');
     };
+
+    if (pathname === '/login') {
+        return null;
+    }
+
+    if (!session) {
+        return null;
+    }
 
     return (
         <nav className="navbar">
@@ -60,6 +70,19 @@ const Navbar = () => {
                     >
                         🔄 Refunds
                     </Link>
+                </div>
+
+                <div className="navbar-user">
+                    <div className="user-info">
+                        <span className="user-name">{session.user?.name}</span>
+                        <span className="user-role">{(session.user as any)?.role}</span>
+                    </div>
+                    <button 
+                        onClick={() => signOut({ callbackUrl: '/login' })}
+                        className="logout-button"
+                    >
+                        🚪 Logout
+                    </button>
                 </div>
             </div>
         </nav>

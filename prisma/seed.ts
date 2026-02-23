@@ -1,414 +1,613 @@
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Start seeding...');
+  console.log('🌱 Starting database seeding...');
 
-  // Clear existing data in correct order (respecting foreign key constraints)
-  await prisma.paymentHistory.deleteMany();
-  await prisma.refund.deleteMany();
-  await prisma.payment.deleteMany();
-  await prisma.invoiceItem.deleteMany();
-  await prisma.invoice.deleteMany();
-  await prisma.deal.deleteMany();
-  await prisma.contact.deleteMany();
-  await prisma.customer.deleteMany();
-  await prisma.paymentGateway.deleteMany();
-  await prisma.paymentSettings.deleteMany();
+  // ========== CREATE USERS ==========
+  console.log('👥 Creating users...');
+  
+  const hashedPasswordAdmin = await bcrypt.hash('admin123', 10);
+  const hashedPasswordManager = await bcrypt.hash('manager123', 10);
+  const hashedPasswordUser = await bcrypt.hash('user123', 10);
 
-  console.log('Cleared existing data');
-
-  // Seed Payment Settings
-  const settings = await prisma.paymentSettings.create({
-    data: {
-      defaultPaymentMethod: 'Credit Card',
-      autoApproveRefunds: false,
-      maxRefundAmount: 10000,
-      requireApprovalAbove: 5000,
-      allowPartialRefunds: true,
-      allowStopPayments: true,
-      taxRate: 0.08,
-      currency: 'USD',
-      invoicePrefix: 'INV-',
-      paymentPrefix: 'PAY-',
-      refundPrefix: 'REF-',
+  const adminUser = await prisma.user.upsert({
+    where: { email: 'admin@crm.com' },
+    update: {},
+    create: {
+      email: 'admin@crm.com',
+      name: 'Admin User',
+      password: hashedPasswordAdmin,
+      role: 'admin',
     },
   });
 
-  console.log('Created payment settings');
-
-  // Seed Payment Gateways
-  const stripe = await prisma.paymentGateway.create({
-    data: {
-      name: 'Stripe',
-      isActive: true,
-      testMode: true,
-      webhookUrl: 'https://example.com/webhooks/stripe',
+  const managerUser = await prisma.user.upsert({
+    where: { email: 'manager@crm.com' },
+    update: {},
+    create: {
+      email: 'manager@crm.com',
+      name: 'Manager User',
+      password: hashedPasswordManager,
+      role: 'manager',
     },
   });
 
-  const paypal = await prisma.paymentGateway.create({
-    data: {
-      name: 'PayPal',
-      isActive: true,
-      testMode: true,
-      webhookUrl: 'https://example.com/webhooks/paypal',
+  const regularUser = await prisma.user.upsert({
+    where: { email: 'user@crm.com' },
+    update: {},
+    create: {
+      email: 'user@crm.com',
+      name: 'Regular User',
+      password: hashedPasswordUser,
+      role: 'user',
     },
   });
 
-  console.log('Created payment gateways');
+  console.log('✅ Created 3 users (admin, manager, user)');
 
-  // Seed Customers
-  const customer1 = await prisma.customer.create({
-    data: {
-      name: 'Acme Corporation',
-      email: 'billing@acmecorp.com',
-      phone: '555-0101',
-      address: '123 Business St, New York, NY 10001',
-    },
-  });
+  // ========== CREATE CUSTOMERS ==========
+  console.log('🏢 Creating customers...');
+  
+  const customers = await Promise.all([
+    prisma.customer.create({
+      data: {
+        name: 'Acme Corporation',
+        email: 'contact@acme.com',
+        phone: '+1-555-0100',
+        company: 'Acme Corp',
+        address: '123 Business St',
+        city: 'New York',
+        state: 'NY',
+        zipCode: '10001',
+        country: 'USA',
+        status: 'Active',
+        userId: adminUser.id,
+      },
+    }),
+    prisma.customer.create({
+      data: {
+        name: 'Tech Innovations LLC',
+        email: 'hello@techinnovations.com',
+        phone: '+1-555-0200',
+        company: 'Tech Innovations',
+        address: '456 Innovation Ave',
+        city: 'San Francisco',
+        state: 'CA',
+        zipCode: '94102',
+        country: 'USA',
+        status: 'Active',
+        userId: managerUser.id,
+      },
+    }),
+    prisma.customer.create({
+      data: {
+        name: 'Global Services Inc',
+        email: 'info@globalservices.com',
+        phone: '+1-555-0300',
+        company: 'Global Services',
+        address: '789 Enterprise Blvd',
+        city: 'Chicago',
+        state: 'IL',
+        zipCode: '60601',
+        country: 'USA',
+        status: 'Active',
+        userId: regularUser.id,
+      },
+    }),
+    prisma.customer.create({
+      data: {
+        name: 'StartUp Ventures',
+        email: 'team@startupventures.com',
+        phone: '+1-555-0400',
+        company: 'StartUp Ventures',
+        address: '321 Silicon Valley Rd',
+        city: 'Palo Alto',
+        state: 'CA',
+        zipCode: '94301',
+        country: 'USA',
+        status: 'Active',
+        userId: adminUser.id,
+      },
+    }),
+    prisma.customer.create({
+      data: {
+        name: 'Enterprise Solutions Ltd',
+        email: 'contact@enterprisesolutions.com',
+        phone: '+1-555-0500',
+        company: 'Enterprise Solutions',
+        address: '555 Corporate Plaza',
+        city: 'Boston',
+        state: 'MA',
+        zipCode: '02101',
+        country: 'USA',
+        status: 'Active',
+        userId: managerUser.id,
+      },
+    }),
+  ]);
 
-  const customer2 = await prisma.customer.create({
-    data: {
-      name: 'TechStart Inc',
-      email: 'accounts@techstart.com',
-      phone: '555-0102',
-      address: '456 Innovation Ave, San Francisco, CA 94102',
-    },
-  });
+  console.log(`✅ Created ${customers.length} customers`);
 
-  const customer3 = await prisma.customer.create({
-    data: {
-      name: 'Global Enterprises',
-      email: 'finance@globalent.com',
-      phone: '555-0103',
-      address: '789 Corporate Blvd, Chicago, IL 60601',
-    },
-  });
-
-  console.log('Created customers');
-
-  // Seed Contacts
-  const contact1 = await prisma.contact.create({
-    data: {
-      name: 'John Smith',
-      email: 'john.smith@acmecorp.com',
-      phone: '555-0201',
-      company: 'Acme Corporation',
-      customerId: customer1.id,
-    },
-  });
-
-  const contact2 = await prisma.contact.create({
-    data: {
-      name: 'Sarah Johnson',
-      email: 'sarah.j@techstart.com',
-      phone: '555-0202',
-      company: 'TechStart Inc',
-      customerId: customer2.id,
-    },
-  });
-
-  console.log('Created contacts');
-
-  // Seed Deals
-  const deal1 = await prisma.deal.create({
-    data: {
-      title: 'Enterprise Software License',
-      description: 'Annual license for 50 users with premium support',
-      value: 75000,
-      amount: 75000,
-      status: 'Won',
-      customerId: customer1.id,
-      contactId: contact1.id,
-    },
-  });
-
-  const deal2 = await prisma.deal.create({
-    data: {
-      title: 'Website Development',
-      description: 'Complete website redesign and development',
-      value: 45000,
-      amount: 45000,
-      status: 'Won',
-      customerId: customer2.id,
-      contactId: contact2.id,
-    },
-  });
-
-  console.log('Created deals');
-
-  // Seed Invoice 1
-  const invoice1 = await prisma.invoice.create({
-    data: {
-      invoiceNumber: 'INV-2024-001',
-      customerId: customer1.id,
-      dealId: deal1.id,
-      issueDate: new Date('2024-01-15'),
-      dueDate: new Date('2024-02-15'),
-      subtotal: 75000,
-      taxRate: 0.08,
-      taxAmount: 6000,
-      totalAmount: 81000,
-      amountPaid: 81000,
-      amountDue: 0,
-      status: 'Paid',
-      notes: 'Annual enterprise license',
-      termsConditions: 'Payment due within 30 days',
-    },
-  });
-
-  // Add items to invoice 1
-  await prisma.invoiceItem.create({
-    data: {
-      invoiceId: invoice1.id,
-      description: 'Enterprise Software License - 50 Users',
-      quantity: 50,
-      unitPrice: 1500,
-      amount: 75000,
-    },
-  });
-
-  // Seed Invoice 2
-  const invoice2 = await prisma.invoice.create({
-    data: {
-      invoiceNumber: 'INV-2024-002',
-      customerId: customer2.id,
-      dealId: deal2.id,
-      issueDate: new Date('2024-01-20'),
-      dueDate: new Date('2024-02-20'),
-      subtotal: 45000,
-      taxRate: 0.08,
-      taxAmount: 3600,
-      totalAmount: 48600,
-      amountPaid: 24300,
-      amountDue: 24300,
-      status: 'Paid',
-      notes: 'Website development project - 50% deposit received',
-    },
-  });
-
-  // Add items to invoice 2
-  await prisma.invoiceItem.createMany({
+  // ========== CREATE CONTACTS ==========
+  console.log('📞 Creating contacts...');
+  
+  const contacts = await prisma.contact.createMany({
     data: [
       {
-        invoiceId: invoice2.id,
-        description: 'Website Design',
-        quantity: 1,
-        unitPrice: 15000,
-        amount: 15000,
+        firstName: 'John',
+        lastName: 'Smith',
+        email: 'john.smith@acme.com',
+        phone: '+1-555-0101',
+        position: 'CEO',
+        customerId: customers[0].id,
+        userId: adminUser.id,
       },
       {
-        invoiceId: invoice2.id,
-        description: 'Frontend Development',
-        quantity: 1,
-        unitPrice: 20000,
-        amount: 20000,
+        firstName: 'Sarah',
+        lastName: 'Johnson',
+        email: 'sarah.j@techinnovations.com',
+        phone: '+1-555-0201',
+        position: 'CTO',
+        customerId: customers[1].id,
+        userId: managerUser.id,
       },
       {
-        invoiceId: invoice2.id,
-        description: 'Backend Development',
-        quantity: 1,
-        unitPrice: 10000,
-        amount: 10000,
+        firstName: 'Michael',
+        lastName: 'Brown',
+        email: 'michael.b@globalservices.com',
+        phone: '+1-555-0301',
+        position: 'VP Sales',
+        customerId: customers[2].id,
+        userId: regularUser.id,
+      },
+      {
+        firstName: 'Emily',
+        lastName: 'Davis',
+        email: 'emily.d@startupventures.com',
+        phone: '+1-555-0401',
+        position: 'Founder',
+        customerId: customers[3].id,
+        userId: adminUser.id,
+      },
+      {
+        firstName: 'Robert',
+        lastName: 'Wilson',
+        email: 'robert.w@enterprisesolutions.com',
+        phone: '+1-555-0501',
+        position: 'CFO',
+        customerId: customers[4].id,
+        userId: managerUser.id,
+      },
+      {
+        firstName: 'Jennifer',
+        lastName: 'Martinez',
+        email: 'jennifer.m@acme.com',
+        phone: '+1-555-0102',
+        position: 'Marketing Director',
+        customerId: customers[0].id,
+        userId: adminUser.id,
       },
     ],
   });
 
-  // Seed Invoice 3
-  const invoice3 = await prisma.invoice.create({
-    data: {
-      invoiceNumber: 'INV-2024-003',
-      customerId: customer3.id,
-      issueDate: new Date('2024-02-01'),
-      dueDate: new Date('2024-03-01'),
-      subtotal: 25000,
-      taxRate: 0.08,
-      taxAmount: 2000,
-      totalAmount: 27000,
-      amountPaid: 0,
-      amountDue: 27000,
-      status: 'Sent',
-      notes: 'Consulting services',
-    },
-  });
+  console.log(`✅ Created ${contacts.count} contacts`);
 
-  // Add items to invoice 3
-  await prisma.invoiceItem.create({
-    data: {
-      invoiceId: invoice3.id,
-      description: 'Strategic Consulting - 100 hours',
-      quantity: 100,
-      unitPrice: 250,
-      amount: 25000,
-    },
-  });
+  // ========== CREATE DEALS ==========
+  console.log('💼 Creating deals...');
+  
+  const deals = await Promise.all([
+    prisma.deal.create({
+      data: {
+        title: 'Enterprise Software License',
+        value: 50000,
+        status: 'Won',
+        stage: 'Closed Won',
+        probability: 100,
+        expectedCloseDate: new Date('2024-03-15'),
+        customerId: customers[0].id,
+        userId: adminUser.id,
+      },
+    }),
+    prisma.deal.create({
+      data: {
+        title: 'Cloud Infrastructure Setup',
+        value: 75000,
+        status: 'In Progress',
+        stage: 'Negotiation',
+        probability: 70,
+        expectedCloseDate: new Date('2024-04-30'),
+        customerId: customers[1].id,
+        userId: managerUser.id,
+      },
+    }),
+    prisma.deal.create({
+      data: {
+        title: 'Consulting Services Package',
+        value: 30000,
+        status: 'Open',
+        stage: 'Prospecting',
+        probability: 40,
+        expectedCloseDate: new Date('2024-05-15'),
+        customerId: customers[2].id,
+        userId: regularUser.id,
+      },
+    }),
+    prisma.deal.create({
+      data: {
+        title: 'Mobile App Development',
+        value: 120000,
+        status: 'In Progress',
+        stage: 'Proposal',
+        probability: 60,
+        expectedCloseDate: new Date('2024-06-01'),
+        customerId: customers[3].id,
+        userId: adminUser.id,
+      },
+    }),
+    prisma.deal.create({
+      data: {
+        title: 'Annual Support Contract',
+        value: 25000,
+        status: 'Won',
+        stage: 'Closed Won',
+        probability: 100,
+        expectedCloseDate: new Date('2024-02-28'),
+        customerId: customers[4].id,
+        userId: managerUser.id,
+      },
+    }),
+  ]);
 
-  console.log('Created invoices with items');
+  console.log(`✅ Created ${deals.length} deals`);
 
-  // Seed Payment 1
-  const payment1 = await prisma.payment.create({
-    data: {
-      paymentNumber: 'PAY-2024-001',
-      invoiceId: invoice1.id,
-      customerId: customer1.id,
-      amount: 81000,
-      paymentMethod: 'Credit Card',
-      paymentDate: new Date('2024-01-20'),
-      status: 'Completed',
-      transactionId: 'ch_3aBcD1234567890',
-      cardLast4: '4242',
-      cardBrand: 'Visa',
-      cardExpiry: '12/25',
-      processedBy: 'System Admin',
-      notes: 'Payment for enterprise license',
-    },
-  });
-
-  // Add payment history for payment 1
-  await prisma.paymentHistory.createMany({
+  // ========== CREATE ACTIVITIES ==========
+  console.log('📅 Creating activities...');
+  
+  const activities = await prisma.activity.createMany({
     data: [
       {
-        paymentId: payment1.id,
-        action: 'Created',
-        description: 'Payment created',
-        performedBy: 'System Admin',
+        type: 'Call',
+        description: 'Initial discovery call with John Smith',
+        date: new Date('2024-02-01'),
+        dealId: deals[0].id,
+        userId: adminUser.id,
       },
       {
-        paymentId: payment1.id,
+        type: 'Meeting',
+        description: 'Product demo for Tech Innovations team',
+        date: new Date('2024-03-01'),
+        dealId: deals[1].id,
+        userId: managerUser.id,
+      },
+      {
+        type: 'Email',
+        description: 'Sent proposal for consulting services',
+        date: new Date('2024-03-10'),
+        dealId: deals[2].id,
+        userId: regularUser.id,
+      },
+      {
+        type: 'Meeting',
+        description: 'Requirements gathering session',
+        date: new Date('2024-03-20'),
+        dealId: deals[3].id,
+        userId: adminUser.id,
+      },
+      {
+        type: 'Call',
+        description: 'Contract renewal discussion',
+        date: new Date('2024-02-15'),
+        dealId: deals[4].id,
+        userId: managerUser.id,
+      },
+    ],
+  });
+
+  console.log(`✅ Created ${activities.count} activities`);
+
+  // ========== CREATE INVOICES ==========
+  console.log('💰 Creating invoices...');
+  
+  const invoices = await Promise.all([
+    prisma.invoice.create({
+      data: {
+        invoiceNumber: 'INV-2024-0001',
+        customerId: customers[0].id,
+        dealId: deals[0].id,
+        issueDate: new Date('2024-03-01'),
+        dueDate: new Date('2024-04-01'),
+        subtotal: 50000,
+        taxRate: 0.08,
+        taxAmount: 4000,
+        discountAmount: 0,
+        totalAmount: 54000,
+        amountPaid: 54000,
+        amountDue: 0,
+        status: 'Paid',
+        notes: 'Payment for Enterprise Software License',
+        termsConditions: 'Net 30 days. Late payments subject to 1.5% monthly interest.',
+        items: {
+          create: [
+            {
+              description: 'Enterprise Software License - Annual',
+              quantity: 1,
+              unitPrice: 50000,
+              amount: 50000,
+            },
+          ],
+        },
+      },
+    }),
+    prisma.invoice.create({
+      data: {
+        invoiceNumber: 'INV-2024-0002',
+        customerId: customers[1].id,
+        dealId: deals[1].id,
+        issueDate: new Date('2024-03-15'),
+        dueDate: new Date('2024-04-15'),
+        subtotal: 75000,
+        taxRate: 0.08,
+        taxAmount: 6000,
+        discountAmount: 1000,
+        totalAmount: 80000,
+        amountPaid: 40000,
+        amountDue: 40000,
+        status: 'Sent',
+        notes: 'Cloud Infrastructure Setup - Phase 1',
+        termsConditions: 'Payment terms: 50% upfront, 50% upon completion.',
+        items: {
+          create: [
+            {
+              description: 'Cloud Infrastructure - Setup & Configuration',
+              quantity: 1,
+              unitPrice: 75000,
+              amount: 75000,
+            },
+          ],
+        },
+      },
+    }),
+    prisma.invoice.create({
+      data: {
+        invoiceNumber: 'INV-2024-0003',
+        customerId: customers[2].id,
+        dealId: deals[2].id,
+        issueDate: new Date('2024-03-20'),
+        dueDate: new Date('2024-04-20'),
+        subtotal: 30000,
+        taxRate: 0.08,
+        taxAmount: 2400,
+        discountAmount: 500,
+        totalAmount: 31900,
+        amountPaid: 0,
+        amountDue: 31900,
+        status: 'Draft',
+        notes: 'Consulting Services Package - Q2 2024',
+        items: {
+          create: [
+            {
+              description: 'Business Consulting - 100 hours',
+              quantity: 100,
+              unitPrice: 300,
+              amount: 30000,
+            },
+          ],
+        },
+      },
+    }),
+    prisma.invoice.create({
+      data: {
+        invoiceNumber: 'INV-2024-0004',
+        customerId: customers[4].id,
+        dealId: deals[4].id,
+        issueDate: new Date('2024-02-20'),
+        dueDate: new Date('2024-03-20'),
+        subtotal: 25000,
+        taxRate: 0.08,
+        taxAmount: 2000,
+        discountAmount: 0,
+        totalAmount: 27000,
+        amountPaid: 27000,
+        amountDue: 0,
+        status: 'Paid',
+        notes: 'Annual Support Contract Renewal',
+        items: {
+          create: [
+            {
+              description: 'Premium Support - Annual Contract',
+              quantity: 1,
+              unitPrice: 25000,
+              amount: 25000,
+            },
+          ],
+        },
+      },
+    }),
+  ]);
+
+  console.log(`✅ Created ${invoices.length} invoices`);
+
+  // ========== CREATE PAYMENTS ==========
+  console.log('💳 Creating payments...');
+  
+  const payments = await Promise.all([
+    prisma.payment.create({
+      data: {
+        paymentNumber: 'PAY-2024-0001',
+        invoiceId: invoices[0].id,
+        customerId: customers[0].id,
+        amount: 54000,
+        paymentMethod: 'Credit Card',
+        paymentDate: new Date('2024-03-05'),
+        status: 'Completed',
+        transactionId: 'TXN-1234567890',
+        referenceNumber: 'REF-001',
+        processedBy: 'Admin User',
+        cardLast4: '4242',
+        cardBrand: 'Visa',
+        notes: 'Full payment for invoice INV-2024-0001',
+      },
+    }),
+    prisma.payment.create({
+      data: {
+        paymentNumber: 'PAY-2024-0002',
+        invoiceId: invoices[1].id,
+        customerId: customers[1].id,
+        amount: 40000,
+        paymentMethod: 'Bank Transfer',
+        paymentDate: new Date('2024-03-20'),
+        status: 'Completed',
+        transactionId: 'TXN-0987654321',
+        referenceNumber: 'WIRE-002',
+        processedBy: 'Manager User',
+        bankName: 'Chase Bank',
+        accountLast4: '5678',
+        notes: 'Partial payment (50%) for invoice INV-2024-0002',
+      },
+    }),
+    prisma.payment.create({
+      data: {
+        paymentNumber: 'PAY-2024-0003',
+        invoiceId: invoices[3].id,
+        customerId: customers[4].id,
+        amount: 27000,
+        paymentMethod: 'Check',
+        paymentDate: new Date('2024-03-10'),
+        status: 'Completed',
+        transactionId: 'CHK-45678',
+        referenceNumber: 'CHECK-003',
+        processedBy: 'Admin User',
+        notes: 'Check payment for annual support contract',
+      },
+    }),
+  ]);
+
+  console.log(`✅ Created ${payments.length} payments`);
+
+  // ========== CREATE PAYMENT HISTORY ==========
+  console.log('📜 Creating payment history...');
+  
+  const paymentHistory = await prisma.paymentHistory.createMany({
+    data: [
+      {
+        paymentId: payments[0].id,
+        action: 'Created',
+        description: 'Payment created and processed',
+        performedBy: 'Admin User',
+      },
+      {
+        paymentId: payments[0].id,
         action: 'Completed',
-        description: 'Payment processed successfully via Stripe',
+        description: 'Payment successfully completed',
+        performedBy: 'System',
+      },
+      {
+        paymentId: payments[1].id,
+        action: 'Created',
+        description: 'Payment created',
+        performedBy: 'Manager User',
+      },
+      {
+        paymentId: payments[1].id,
+        action: 'Verified',
+        description: 'Bank transfer verified',
         performedBy: 'System',
       },
     ],
   });
 
-  // Seed Payment 2
-  const payment2 = await prisma.payment.create({
-    data: {
-      paymentNumber: 'PAY-2024-002',
-      invoiceId: invoice2.id,
-      customerId: customer2.id,
-      amount: 24300,
-      paymentMethod: 'Bank Transfer',
-      paymentDate: new Date('2024-01-25'),
-      status: 'Completed',
-      referenceNumber: 'WIRE-20240125-001',
-      bankName: 'Chase Bank',
-      accountLast4: '8765',
-      processedBy: 'Finance Team',
-      notes: '50% deposit payment',
-    },
-  });
+  console.log(`✅ Created ${paymentHistory.count} payment history records`);
 
-  // Add payment history for payment 2
-  await prisma.paymentHistory.createMany({
+  // ========== CREATE REFUNDS ==========
+  console.log('🔄 Creating refunds...');
+  
+  const refunds = await prisma.refund.createMany({
     data: [
       {
-        paymentId: payment2.id,
-        action: 'Created',
-        description: 'Payment created',
-        performedBy: 'Finance Team',
-      },
-      {
-        paymentId: payment2.id,
-        action: 'Completed',
-        description: 'Wire transfer confirmed',
-        performedBy: 'Finance Team',
+        refundNumber: 'REF-2024-0001',
+        paymentId: payments[0].id,
+        invoiceId: invoices[0].id,
+        amount: 5000,
+        reason: 'Service credit - Performance issues in first month',
+        refundMethod: 'Credit Card',
+        status: 'Completed',
+        requestedAt: new Date('2024-03-25'),
+        requestedBy: 'John Smith',
+        approvedAt: new Date('2024-03-26'),
+        approvedBy: 'Admin User',
+        processedAt: new Date('2024-03-27'),
+        processedBy: 'Admin User',
+        transactionId: 'REFUND-TXN-001',
+        notes: 'Approved partial refund for service disruption',
       },
     ],
   });
 
-  // Seed Payment 3 (Stopped Payment)
-  const payment3 = await prisma.payment.create({
-    data: {
-      paymentNumber: 'PAY-2024-003',
-      invoiceId: invoice2.id,
-      customerId: customer2.id,
-      amount: 10000,
-      paymentMethod: 'Check',
-      paymentDate: new Date('2024-02-10'),
-      status: 'Stopped',
-      referenceNumber: 'CHK-1234',
-      isStopped: true,
-      stoppedAt: new Date('2024-02-12'),
-      stoppedBy: 'Finance Manager',
-      stopReason: 'Customer requested stop payment - duplicate payment issue',
-      processedBy: 'Finance Team',
-      notes: 'Check payment - STOPPED',
+  console.log(`✅ Created ${refunds.count} refunds`);
+
+  // ========== CREATE PAYMENT SETTINGS ==========
+  console.log('⚙️ Creating payment settings...');
+  
+  await prisma.paymentSettings.upsert({
+    where: { id: 'default' },
+    update: {},
+    create: {
+      id: 'default',
+      merchantName: 'CRM Pro Solutions',
+      merchantEmail: 'billing@crmpro.com',
+      defaultCurrency: 'USD',
+      defaultTaxRate: 0.08,
+      allowPartialPayment: true,
+      autoSendReceipt: true,
     },
   });
 
-  // Add payment history for payment 3
-  await prisma.paymentHistory.createMany({
+  console.log('✅ Created payment settings');
+
+  // ========== CREATE PAYMENT GATEWAYS ==========
+  console.log('🔌 Creating payment gateways...');
+  
+  await prisma.paymentGateway.createMany({
     data: [
       {
-        paymentId: payment3.id,
-        action: 'Created',
-        description: 'Check payment created',
-        performedBy: 'Finance Team',
+        name: 'Stripe',
+        apiKey: 'sk_test_demo_key_stripe',
+        apiSecret: 'demo_secret_stripe',
+        isActive: true,
       },
       {
-        paymentId: payment3.id,
-        action: 'Stopped',
-        description: 'Payment stopped due to duplicate payment issue',
-        performedBy: 'Finance Manager',
+        name: 'PayPal',
+        apiKey: 'AYSq3RDGsmBLJIBnGHVFkHB8eJKFnBLJIBnGHVFkHB8',
+        apiSecret: 'EHFnBLJIBnGHVFkHB8eJKFnB8eJKFnBLJI',
+        isActive: true,
       },
     ],
   });
 
-  console.log('Created payments with history');
+  console.log('✅ Created payment gateways');
 
-  // Seed Refund 1
-  const refund1 = await prisma.refund.create({
-    data: {
-      refundNumber: 'REF-2024-001',
-      paymentId: payment1.id,
-      invoiceId: invoice1.id,
-      amount: 5000,
-      reason: 'Partial refund - reduced user count from 50 to 45',
-      refundMethod: 'Original Payment Method',
-      status: 'Completed',
-      requestedBy: 'Customer Service',
-      approvedBy: 'Finance Manager',
-      processedBy: 'System Admin',
-      requestedAt: new Date('2024-02-01'),
-      approvedAt: new Date('2024-02-02'),
-      processedAt: new Date('2024-02-03'),
-      transactionId: 're_1AbCdEf1234567890',
-      notes: 'Customer downgraded license count',
-    },
-  });
-
-  // Seed Refund 2
-  const refund2 = await prisma.refund.create({
-    data: {
-      refundNumber: 'REF-2024-002',
-      paymentId: payment2.id,
-      invoiceId: invoice2.id,
-      amount: 2500,
-      reason: 'Service quality issue - partial refund approved',
-      refundMethod: 'Store Credit',
-      status: 'Pending',
-      requestedBy: 'Customer',
-      requestedAt: new Date('2024-02-15'),
-      notes: 'Awaiting approval from finance manager',
-    },
-  });
-
-  console.log('Created refunds');
-
-  console.log('✅ Seeding finished successfully!');
-  console.log('\nSummary:');
-  console.log('- 3 Customers');
-  console.log('- 2 Contacts');
-  console.log('- 2 Deals');
-  console.log('- 3 Invoices with items');
-  console.log('- 3 Payments with history');
-  console.log('- 2 Refunds');
-  console.log('- 2 Payment Gateways');
-  console.log('- 1 Payment Settings');
+  // ========== SUMMARY ==========
+  console.log('\n🎉 ========== SEEDING COMPLETED SUCCESSFULLY ==========');
+  console.log('📊 Summary:');
+  console.log(`   - Users: 3 (admin, manager, user)`);
+  console.log(`   - Customers: ${customers.length}`);
+  console.log(`   - Contacts: ${contacts.count}`);
+  console.log(`   - Deals: ${deals.length}`);
+  console.log(`   - Activities: ${activities.count}`);
+  console.log(`   - Invoices: ${invoices.length}`);
+  console.log(`   - Payments: ${payments.length}`);
+  console.log(`   - Payment History: ${paymentHistory.count}`);
+  console.log(`   - Refunds: ${refunds.count}`);
+  console.log(`   - Payment Settings: 1`);
+  console.log(`   - Payment Gateways: 2`);
+  console.log('\n🔑 Demo Login Credentials:');
+  console.log('   Admin:   admin@crm.com / admin123');
+  console.log('   Manager: manager@crm.com / manager123');
+  console.log('   User:    user@crm.com / user123');
+  console.log('=======================================================\n');
 }
 
 main()
