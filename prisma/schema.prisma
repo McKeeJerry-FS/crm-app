@@ -21,6 +21,12 @@ model Customer {
   address   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Relationships
+  contacts  Contact[]
+  deals     Deal[]
+  invoices  Invoice[]
+  payments  Payment[]
 }
 
 model Contact {
@@ -29,8 +35,13 @@ model Contact {
   email     String   @unique
   phone     String
   company   String
+  customerId String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Relationships
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  deals      Deal[]
 }
 
 model Deal {
@@ -39,7 +50,161 @@ model Deal {
   description String
   value       Float
   amount      Float
-  status      String
+  status      String   // Open, In Progress, Won, Lost
+  customerId  String?
+  contactId   String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  // Relationships
+  customer    Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  contact     Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  invoices    Invoice[]
+}
+
+model Invoice {
+  id              String        @id @default(cuid())
+  invoiceNumber   String        @unique
+  customerId      String
+  dealId          String?
+  issueDate       DateTime      @default(now())
+  dueDate         DateTime
+  subtotal        Float
+  taxRate         Float         @default(0)
+  taxAmount       Float         @default(0)
+  discountAmount  Float         @default(0)
+  totalAmount     Float
+  amountPaid      Float         @default(0)
+  amountDue       Float
+  status          String        // Draft, Sent, Paid, Overdue, Cancelled, Refunded
+  notes           String?
+  termsConditions String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relationships
+  customer        Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  deal            Deal?         @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  items           InvoiceItem[]
+  payments        Payment[]
+  refunds         Refund[]
+}
+
+model InvoiceItem {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  description String
+  quantity    Float
+  unitPrice   Float
+  amount      Float
+  createdAt   DateTime @default(now())
+
+  // Relationships
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id                String          @id @default(cuid())
+  paymentNumber     String          @unique
+  invoiceId         String
+  customerId        String
+  amount            Float
+  paymentMethod     String          // Credit Card, Debit Card, Bank Transfer, Cash, Check, PayPal, Stripe, etc.
+  paymentDate       DateTime        @default(now())
+  status            String          // Pending, Completed, Failed, Cancelled, Stopped
+  transactionId     String?         // External transaction ID from payment gateway
+  referenceNumber   String?         // Check number, wire transfer reference, etc.
+  notes             String?
+  processedBy       String?         // User who processed the payment
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  // Card Details (if applicable)
+  cardLast4         String?
+  cardBrand         String?         // Visa, Mastercard, Amex, etc.
+  cardExpiry        String?
+
+  // Bank Transfer Details (if applicable)
+  bankName          String?
+  accountLast4      String?
+
+  // Stop Payment
+  isStopped         Boolean         @default(false)
+  stoppedAt         DateTime?
+  stoppedBy         String?
+  stopReason        String?
+
+  // Relationships
+  invoice           Invoice         @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  customer          Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  refunds           Refund[]
+  paymentHistory    PaymentHistory[]
+}
+
+model Refund {
+  id              String   @id @default(cuid())
+  refundNumber    String   @unique
+  paymentId       String
+  invoiceId       String
+  amount          Float
+  reason          String
+  refundMethod    String   // Original Payment Method, Store Credit, Cash, etc.
+  status          String   // Pending, Approved, Rejected, Completed, Failed
+  requestedBy     String?
+  approvedBy      String?
+  processedBy     String?
+  requestedAt     DateTime @default(now())
+  approvedAt      DateTime?
+  processedAt     DateTime?
+  transactionId   String?  // External refund transaction ID
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relationships
+  payment         Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  invoice         Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model PaymentHistory {
+  id          String   @id @default(cuid())
+  paymentId   String
+  action      String   // Created, Updated, Completed, Failed, Stopped, Refunded, etc.
+  description String
+  performedBy String?
+  metadata    String?  // JSON string for additional data
+  createdAt   DateTime @default(now())
+
+  // Relationships
+  payment     Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+}
+
+model PaymentGateway {
+  id              String   @id @default(cuid())
+  name            String   // Stripe, PayPal, Square, Authorize.net, etc.
+  isActive        Boolean  @default(true)
+  apiKey          String?
+  apiSecret       String?
+  webhookUrl      String?
+  testMode        Boolean  @default(false)
+  configuration   String?  // JSON string for additional config
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model PaymentSettings {
+  id                    String   @id @default(cuid())
+  defaultPaymentMethod  String   @default("Credit Card")
+  autoApproveRefunds    Boolean  @default(false)
+  maxRefundAmount       Float    @default(10000)
+  requireApprovalAbove  Float    @default(5000)
+  allowPartialRefunds   Boolean  @default(true)
+  allowStopPayments     Boolean  @default(true)
+  taxRate               Float    @default(0)
+  currency              String   @default("USD")
+  invoicePrefix         String   @default("INV-")
+  paymentPrefix         String   @default("PAY-")
+  refundPrefix          String   @default("REF-")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 }

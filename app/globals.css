@@ -428,6 +428,44 @@ label {
   font-size: 0.875rem;
 }
 
+/* Payment System Specific Styles */
+.stat-danger {
+  border-left-color: #dc2626;
+}
+
+/* Table Styles */
+table {
+  font-size: 0.875rem;
+}
+
+table th {
+  font-weight: 600;
+  color: #374151;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+table td {
+  color: #1f2937;
+}
+
+/* Modal Styles */
+input[type="text"],
+input[type="email"],
+input[type="number"],
+input[type="date"],
+textarea,
+select {
+  font-family: inherit;
+  font-size: 0.875rem;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .dashboard {
@@ -444,5 +482,151 @@ label {
 
   .stat-value {
     font-size: 1.5rem;
+  }
+}
+
+/* Charts Section */
+.charts-section {
+  margin-bottom: 3rem;
+}
+
+.charts-section h2 {
+  font-size: 1.75rem;
+  margin-bottom: 1.5rem;
+  color: #1f2937;
+}
+
+.chart-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.chart-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.chart-card-large {
+  grid-column: span 2;
+}
+
+.chart-card h3 {
+  font-size: 1.125rem;
+  margin-bottom: 1rem;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+/* Alerts Section */
+.alerts-section {
+  margin-bottom: 3rem;
+}
+
+.alerts-section h2 {
+  font-size: 1.75rem;
+  margin-bottom: 1.5rem;
+  color: #1f2937;
+}
+
+.alerts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.alert-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border-left: 4px solid;
+  transition: transform 0.2s;
+}
+
+.alert-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.alert-danger {
+  border-left-color: #dc2626;
+  background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%);
+}
+
+.alert-warning {
+  border-left-color: #f59e0b;
+  background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
+}
+
+.alert-info {
+  border-left-color: #3b82f6;
+  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
+}
+
+.alert-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.alert-content {
+  flex: 1;
+}
+
+.alert-title {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.alert-value {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+}
+
+.alert-description {
+  font-size: 0.875rem;
+  color: #9ca3af;
+  margin-bottom: 0.5rem;
+}
+
+.alert-link {
+  font-size: 0.875rem;
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: color 0.2s;
+}
+
+.alert-link:hover {
+  color: #1d4ed8;
+}
+
+/* Responsive Charts */
+@media (max-width: 1024px) {
+  .chart-card-large {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .chart-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .alerts-grid {
+    grid-template-columns: 1fr;
   }
 }

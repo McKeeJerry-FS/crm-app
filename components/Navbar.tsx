@@ -42,6 +42,24 @@ const Navbar = () => {
                     >
                         💼 Deals
                     </Link>
+                    <Link 
+                        href="/invoices" 
+                        className={`navbar-link ${isActive('/invoices') ? 'active' : ''}`}
+                    >
+                        💰 Invoices
+                    </Link>
+                    <Link 
+                        href="/payments" 
+                        className={`navbar-link ${isActive('/payments') ? 'active' : ''}`}
+                    >
+                        💳 Payments
+                    </Link>
+                    <Link 
+                        href="/refunds" 
+                        className={`navbar-link ${isActive('/refunds') ? 'active' : ''}`}
+                    >
+                        🔄 Refunds
+                    </Link>
                 </div>
             </div>
         </nav>
