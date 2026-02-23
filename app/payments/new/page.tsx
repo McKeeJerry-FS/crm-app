@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -29,7 +29,8 @@ const paymentSchema = z.object({
 
 type PaymentFormData = z.infer<typeof paymentSchema>;
 
-const NewPayment = () => {
+// Separate component that uses useSearchParams
+function PaymentFormContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const preselectedInvoiceId = searchParams.get('invoiceId');
@@ -403,6 +404,13 @@ const NewPayment = () => {
             </form>
         </div>
     );
-};
+}
 
-export default NewPayment;
+// Main component with Suspense wrapper
+export default function NewPayment() {
+    return (
+        <Suspense fallback={<div className="loading">Loading payment form...</div>}>
+            <PaymentFormContent />
+        </Suspense>
+    );
+}
