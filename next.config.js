@@ -3,6 +3,7 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: false,
   },
+  output: "standalone",
 };
 
 module.exports = nextConfig;
