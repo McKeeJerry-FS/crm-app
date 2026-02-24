@@ -40,13 +40,12 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  const { id } = params;
-  const body = await request.json();
-
   try {
+    const data = await request.json();
+
     const payment = await prisma.payment.update({
-      where: { id },
-      data: body,
+      where: { id: params.id },
+      data,
       include: {
         customer: true,
         invoice: true,
@@ -56,16 +55,20 @@ export async function PUT(
     // Add to payment history
     await prisma.paymentHistory.create({
       data: {
-        paymentId: id,
+        paymentId: params.id,
         action: "Updated",
         description: "Payment details updated",
-        performedBy: body.processedBy || "System",
+        performedBy: data.processedBy || "System",
       },
     });
 
     return NextResponse.json(payment);
   } catch (error) {
-    return NextResponse.json({ error: "Payment not found" }, { status: 404 });
+    console.error("Error updating payment:", error);
+    return NextResponse.json(
+      { error: "Failed to update payment" },
+      { status: 500 },
+    );
   }
 }
 
@@ -73,14 +76,17 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  const { id } = params;
-
   try {
     await prisma.payment.delete({
-      where: { id },
+      where: { id: params.id },
     });
-    return NextResponse.json({ message: "Payment deleted" });
+
+    return NextResponse.json({ message: "Payment deleted successfully" });
   } catch (error) {
-    return NextResponse.json({ error: "Payment not found" }, { status: 404 });
+    console.error("Error deleting payment:", error);
+    return NextResponse.json(
+      { error: "Failed to delete payment" },
+      { status: 500 },
+    );
   }
 }

@@ -1,13 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(
-  request: Request,
-  { params }: { params: { id: string } },
-) {
+export async function GET(request: NextRequest) {
   try {
-    const payment = await prisma.payment.findUnique({
-      where: { id: params.id },
+    const payments = await prisma.payment.findMany({
       include: {
         invoice: {
           include: {
@@ -16,61 +12,49 @@ export async function GET(
         },
         customer: true,
         refunds: true,
-        history: {
-          orderBy: { createdAt: "desc" },
-        },
+      },
+      orderBy: {
+        createdAt: "desc",
       },
     });
 
-    if (!payment) {
-      return NextResponse.json({ error: "Payment not found" }, { status: 404 });
-    }
-
-    return NextResponse.json(payment);
+    return NextResponse.json(payments);
   } catch (error) {
-    console.error("Error fetching payment:", error);
+    console.error("Error fetching payments:", error);
     return NextResponse.json(
-      { error: "Failed to fetch payment" },
+      { error: "Failed to fetch payments" },
       { status: 500 },
     );
   }
 }
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } },
-) {
+export async function POST(request: NextRequest) {
   try {
-    const data = await request.json();
-    const payment = await prisma.payment.update({
-      where: { id: params.id },
-      data,
+    const body = await request.json();
+
+    const payment = await prisma.payment.create({
+      data: body,
+      include: {
+        customer: true,
+        invoice: true,
+      },
     });
 
-    return NextResponse.json(payment);
-  } catch (error) {
-    console.error("Error updating payment:", error);
-    return NextResponse.json(
-      { error: "Failed to update payment" },
-      { status: 500 },
-    );
-  }
-}
-
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } },
-) {
-  try {
-    await prisma.payment.delete({
-      where: { id: params.id },
+    // Add to payment history
+    await prisma.paymentHistory.create({
+      data: {
+        paymentId: payment.id,
+        action: "Created",
+        description: "Payment created",
+        performedBy: body.processedBy || "System",
+      },
     });
 
-    return NextResponse.json({ message: "Payment deleted successfully" });
+    return NextResponse.json(payment, { status: 201 });
   } catch (error) {
-    console.error("Error deleting payment:", error);
+    console.error("Error creating payment:", error);
     return NextResponse.json(
-      { error: "Failed to delete payment" },
+      { error: "Failed to create payment" },
       { status: 500 },
     );
   }
