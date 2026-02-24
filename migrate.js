@@ -28,24 +28,38 @@ async function migrate() {
     console.log(migrateOutput);
     console.log("✅ Migrations complete!");
 
-    console.log("\n========================================");
-    console.log("🌱 Seeding Database");
-    console.log("========================================");
+    // Run seeding separately with better error handling
+    try {
+      console.log("\n========================================");
+      console.log("🌱 Seeding Database");
+      console.log("========================================");
 
-    const { stdout: seedOutput } = await execAsync(`${prismaPath} db seed`);
-    console.log(seedOutput);
-    console.log("✅ Seeding complete!\n");
+      const { stdout: seedOutput, stderr: seedError } = await execAsync(
+        `${prismaPath} db seed`,
+      );
+      console.log(seedOutput);
+      if (seedError) console.log("Seed stderr:", seedError);
+      console.log("✅ Seeding complete!\n");
+    } catch (error) {
+      console.error("❌ Seeding failed:", error.message);
+      if (error.stdout) console.log("Seed stdout:", error.stdout);
+      if (error.stderr) console.error("Seed stderr:", error.stderr);
+
+      // Check if it's a "unique constraint" error (data already exists)
+      if (
+        error.message.includes("Unique constraint") ||
+        error.stderr?.includes("Unique constraint")
+      ) {
+        console.log("⚠️  Data already exists, skipping seed...\n");
+      } else {
+        console.log("⚠️  Seeding failed, but continuing deployment...\n");
+      }
+    }
   } catch (error) {
-    console.error("❌ Setup failed:", error.message);
+    console.error("❌ Migration failed:", error.message);
     if (error.stdout) console.log(error.stdout);
     if (error.stderr) console.error(error.stderr);
-
-    // Don't exit if seeding fails (data might already exist)
-    if (error.message.includes("seed")) {
-      console.log("⚠️  Seeding failed, but continuing...");
-    } else {
-      process.exit(1);
-    }
+    process.exit(1);
   }
 }
 
