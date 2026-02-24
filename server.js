@@ -1,5 +1,6 @@
 const { exec, spawn } = require("child_process");
 const { promisify } = require("util");
+const path = require("path");
 
 const execAsync = promisify(exec);
 
@@ -19,21 +20,24 @@ async function main() {
     process.exit(1);
   }
 
+  // Use local Prisma instead of npx
+  const prismaPath = path.join(__dirname, "node_modules", ".bin", "prisma");
+
   console.log("\n========================================");
   console.log("🔄 Running Prisma Migrations");
   console.log("========================================");
 
   try {
-    // Check Prisma schema first
-    console.log("📋 Checking Prisma schema...");
-    const { stdout: schemaCheck } = await execAsync("npx prisma validate", {
+    // Check Prisma version
+    console.log("📦 Checking Prisma version...");
+    const { stdout: version } = await execAsync(`${prismaPath} --version`, {
       env: { ...process.env },
     });
-    console.log(schemaCheck);
+    console.log(version);
 
-    // Run migrations
+    // Run migrations using local Prisma
     console.log("\n🚀 Deploying migrations...");
-    const { stdout, stderr } = await execAsync("npx prisma migrate deploy", {
+    const { stdout, stderr } = await execAsync(`${prismaPath} migrate deploy`, {
       env: { ...process.env },
     });
 
@@ -44,18 +48,6 @@ async function main() {
       console.log("⚠️  Migration stderr:");
       console.log(stderr);
     }
-
-    // Verify tables were created
-    console.log("\n🔍 Verifying database schema...");
-    const { stdout: introspect } = await execAsync(
-      "npx prisma db execute --stdin",
-      {
-        env: { ...process.env },
-        input:
-          "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';",
-      },
-    ).catch(() => ({ stdout: "Could not verify tables" }));
-    console.log("Tables in database:", introspect);
 
     console.log("\n========================================");
     console.log("✅ Database Setup Complete!");
@@ -86,7 +78,6 @@ async function main() {
     console.error("Error message:", error.message);
     console.error("Error stdout:", error.stdout);
     console.error("Error stderr:", error.stderr);
-    console.error("Full error:", error);
     process.exit(1);
   }
 }
