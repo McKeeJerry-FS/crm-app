@@ -1,17 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 export async function GET() {
+  try {
     const customers = await prisma.customer.findMany({
-        orderBy: { createdAt: 'desc' }
+      include: {
+        contacts: true,
+        deals: true,
+      },
     });
     return NextResponse.json(customers);
-}
-
-export async function POST(request: NextRequest) {
-    const body = await request.json();
-    const customer = await prisma.customer.create({
-        data: body
-    });
-    return NextResponse.json(customer, { status: 201 });
+  } catch (error) {
+    console.error("Database error:", error);
+    return NextResponse.json(
+      {
+        error: "Failed to fetch customers",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
 }
