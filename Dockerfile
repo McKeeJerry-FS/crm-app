@@ -1,11 +1,14 @@
-FROM node:18-alpine AS base
+FROM node:20-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
+# Copy package files AND prisma schema for postinstall
 COPY package.json package-lock.json* ./
+COPY prisma ./prisma
+
 RUN npm ci
 
 # Rebuild the source code only when needed
@@ -26,6 +29,8 @@ WORKDIR /app
 ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1
 
+RUN apk add --no-cache openssl
+
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
@@ -36,6 +41,7 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/server.js ./server.js
+COPY --from=builder /app/package.json ./package.json
 
 USER nextjs
 
