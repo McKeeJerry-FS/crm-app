@@ -22,12 +22,30 @@ async function migrate() {
     console.log(version);
 
     console.log("\n🚀 Deploying migrations...");
-    const { stdout } = await execAsync(`${prismaPath} migrate deploy`);
-    console.log(stdout);
-    console.log("✅ Migrations complete!\n");
+    const { stdout: migrateOutput } = await execAsync(
+      `${prismaPath} migrate deploy`,
+    );
+    console.log(migrateOutput);
+    console.log("✅ Migrations complete!");
+
+    console.log("\n========================================");
+    console.log("🌱 Seeding Database");
+    console.log("========================================");
+
+    const { stdout: seedOutput } = await execAsync(`${prismaPath} db seed`);
+    console.log(seedOutput);
+    console.log("✅ Seeding complete!\n");
   } catch (error) {
-    console.error("❌ Migration failed:", error.message);
-    process.exit(1);
+    console.error("❌ Setup failed:", error.message);
+    if (error.stdout) console.log(error.stdout);
+    if (error.stderr) console.error(error.stderr);
+
+    // Don't exit if seeding fails (data might already exist)
+    if (error.message.includes("seed")) {
+      console.log("⚠️  Seeding failed, but continuing...");
+    } else {
+      process.exit(1);
+    }
   }
 }
 
