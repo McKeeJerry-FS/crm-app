@@ -33,21 +33,12 @@ RUN apk add --no-cache openssl
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy public folder
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-
-# Copy standalone build
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-# Copy ALL node_modules (needed for Prisma CLI)
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
-
-# Copy Prisma schema
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
-
-# Copy server file
-COPY --from=builder --chown=nextjs:nodejs /app/server.js ./server.js
+COPY --from=builder --chown=nextjs:nodejs /app/migrate.js ./migrate.js
 COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 
 USER nextjs
@@ -56,4 +47,4 @@ EXPOSE 3000
 
 ENV PORT 3000
 
-CMD ["node", "server.js"]
+CMD ["sh", "-c", "node migrate.js && node server.js"]
