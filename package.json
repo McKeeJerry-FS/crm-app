@@ -6,11 +6,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
-    "start": "node server.js",
+    "start": "sh -c 'node migrate.js && node server.js'",
     "lint": "next lint",
     "postinstall": "prisma generate",
-    "migrate:deploy": "prisma migrate deploy",
-    "db:push": "prisma db push",
     "db:seed": "prisma db seed"
   },
   "prisma": {
