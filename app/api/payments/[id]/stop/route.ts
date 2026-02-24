@@ -1,41 +1,44 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(
-    request: NextRequest,
-    context: { params: Promise<{ id: string }> }
+  request: Request,
+  { params }: { params: { id: string } },
 ) {
-    const { id } = await context.params;
-    const { reason, stoppedBy } = await request.json();
-    
-    try {
-        const payment = await prisma.payment.update({
-            where: { id },
-            data: {
-                status: 'Stopped',
-                isStopped: true,
-                stoppedAt: new Date(),
-                stoppedBy,
-                stopReason: reason,
-            },
-            include: {
-                customer: true,
-                invoice: true,
-            }
-        });
-        
-        // Add to payment history
-        await prisma.paymentHistory.create({
-            data: {
-                paymentId: id,
-                action: 'Stopped',
-                description: `Payment stopped: ${reason}`,
-                performedBy: stoppedBy,
-            }
-        });
-        
-        return NextResponse.json(payment);
-    } catch (error) {
-        return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
-    }
+  try {
+    const { reason } = await request.json();
+
+    const payment = await prisma.payment.update({
+      where: { id: params.id },
+      data: {
+        status: "Stopped",
+        isStopped: true,
+        stoppedAt: new Date(),
+        stopReason: reason || "Payment stopped",
+      },
+      include: {
+        invoice: true,
+        customer: true,
+        history: true,
+      },
+    });
+
+    // Create payment history separately
+    await prisma.paymentHistory.create({
+      data: {
+        paymentId: params.id,
+        action: "Payment Stopped",
+        description: reason || "Payment was stopped",
+        performedBy: "System", // Or pass the user ID if available
+      },
+    });
+
+    return NextResponse.json(payment);
+  } catch (error) {
+    console.error("Error stopping payment:", error);
+    return NextResponse.json(
+      { error: "Failed to stop payment" },
+      { status: 500 },
+    );
+  }
 }
